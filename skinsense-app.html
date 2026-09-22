@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dermalog — Daily Skin Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F6EFFC;
+    --panel: rgba(255,255,255,0.6);
+    --panel-border: rgba(255,255,255,0.75);
+    --ink: #2B1B3D;
+    --ink-soft: #8577A0;
+    --line: rgba(43,27,61,0.12);
+    --rose: #FF5C8A;
+    --rose-soft: #FFE0EB;
+    --sage: #16B58B;
+    --sage-soft: #D8FBF0;
+    --alert: #E1476A;
+    --alert-soft: #FFE0E8;
+    --glow1: rgba(255,110,170,0.35);
+    --glow2: rgba(120,210,255,0.32);
+    --glow3: rgba(160,255,210,0.28);
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #180F26;
+      --panel: rgba(45,28,66,0.55);
+      --panel-border: rgba(255,255,255,0.10);
+      --ink: #F3E9FF;
+      --ink-soft: #B4A3D6;
+      --line: rgba(255,255,255,0.10);
+      --rose: #FF7FA6;
+      --rose-soft: #3D2333;
+      --sage: #4CEFC0;
+      --sage-soft: #1B3A32;
+      --alert: #FF8098;
+      --alert-soft: #3D2230;
+      --glow1: rgba(255,110,170,0.28);
+      --glow2: rgba(120,170,255,0.24);
+      --glow3: rgba(120,255,200,0.18);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #180F26;
+    --panel: rgba(45,28,66,0.55);
+    --panel-border: rgba(255,255,255,0.10);
+    --ink: #F3E9FF;
+    --ink-soft: #B4A3D6;
+    --line: rgba(255,255,255,0.10);
+    --rose: #FF7FA6;
+    --rose-soft: #3D2333;
+    --sage: #4CEFC0;
+    --sage-soft: #1B3A32;
+    --alert: #FF8098;
+    --alert-soft: #3D2230;
+    --glow1: rgba(255,110,170,0.28);
+    --glow2: rgba(120,170,255,0.24);
+    --glow3: rgba(120,255,200,0.18);
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); height: 100%; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: -10%;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(38% 30% at 15% 12%, var(--glow1), transparent 70%),
+      radial-gradient(34% 28% at 88% 20%, var(--glow2), transparent 70%),
+      radial-gradient(40% 32% at 50% 95%, var(--glow3), transparent 70%);
+    filter: blur(40px);
+  }
+  .app { position: relative; z-index: 1; }
+  .app {
+    max-width: 460px;
+    margin: 0 auto;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 18px calc(90px + env(safe-area-inset-bottom, 0px));
+  }
+  header.top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 6px 2px 18px;
+  }
+  .wordmark {
+    font-family: 'Baloo 2', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .wordmark span { color: var(--rose); }
+  .date-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 24px;
+    padding: 20px;
+    margin-bottom: 14px;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 8px 28px rgba(90,40,90,0.08);
+  }
+
+  /* Scan view */
+  .scan-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    border-radius: 22px;
+    overflow: hidden;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .scan-frame video, .scan-frame canvas.preview {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+  }
+  .guide-oval {
+    position: absolute;
+    inset: 10% 18%;
+    border: 2px dashed rgba(255,255,255,0.75);
+    border-radius: 50% / 42%;
+    pointer-events: none;
+  }
+  .scan-placeholder {
+    color: rgba(255,255,255,0.65);
+    font-size: 13px;
+    text-align: center;
+    padding: 0 30px;
+    font-family: 'Inter', sans-serif;
+  }
+  .scan-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  button, label.btn-file {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 999px;
+    border: 1px solid var(--panel-border);
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.5);
+    color: var(--ink);
+    cursor: pointer;
+    flex: 1;
+    transition: transform 0.12s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  button:active { transform: scale(0.97); }
+  button.primary {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+  button.rose {
+    background: linear-gradient(135deg, #FF6FA0, #FF9D6C);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 8px 20px var(--glow1);
+  }
+  button:disabled { opacity: 0.45; cursor: default; }
+  #fileInput { display: none; }
+
+  h2.section-title {
+    font-family: 'Baloo 2', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 12px;
+  }
+  .muted { color: var(--ink-soft); font-size: 13px; line-height: 1.5; }
+
+  /* Readout bars */
+  .readout-row { margin-bottom: 14px; }
+  .readout-row:last-child { margin-bottom: 0; }
+  .readout-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+  .readout-label b { font-weight: 500; }
+  .readout-label .val { font-family: 'JetBrains Mono', monospace; color: var(--ink-soft); }
+  .bar-track {
+    height: 6px;
+    border-radius: 4px;
+    background: var(--line);
+    overflow: hidden;
+  }
+  .bar-fill { height: 100%; border-radius: 4px; }
+
+  .summary-line {
+    font-family: 'Baloo 2', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.5;
+    margin: 16px 0 4px;
+  }
+
+  /* Tabs */
+  nav.tabbar {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    width: min(460px, calc(100% - 36px));
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    display: flex;
+    padding: 6px;
+    gap: 4px;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 10px 30px rgba(90,40,90,0.14);
+    z-index: 2;
+  }
+  nav.tabbar button.tab {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 10px 6px;
+    font-size: 12.5px;
+    border-radius: 999px;
+    color: var(--ink-soft);
+  }
+  nav.tabbar button.tab.active {
+    background: linear-gradient(135deg, #FF6FA0, #FF9D6C);
+    color: #fff;
+    font-weight: 700;
+  }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Trends */
+  .streak-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .streak-num {
+    font-family: 'Baloo 2', sans-serif;
+    font-size: 36px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #FF6FA0, #FF9D6C);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  canvas.spark { width: 100%; height: 60px; display: block; margin-top: 8px; }
+  .metric-block { margin-bottom: 20px; }
+  .metric-block:last-child { margin-bottom: 0; }
+  .metric-name { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+
+  .risk-badge {
+    display: inline-block;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-top: 6px;
+  }
+  .risk-low { background: var(--sage-soft); color: var(--sage); }
+  .risk-med { background: var(--rose-soft); color: var(--rose); }
+  .risk-high { background: var(--alert-soft); color: var(--alert); }
+
+  /* Routine */
+  .rec-list { list-style: none; padding: 0; margin: 10px 0 0; }
+  .rec-list li {
+    font-size: 13.5px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    gap: 8px;
+  }
+  .rec-list li:last-child { border-bottom: none; }
+  .rec-list li .mark { color: var(--sage); font-family: 'JetBrains Mono', monospace; flex-shrink: 0; }
+  .rec-list li.avoid .mark { color: var(--alert); }
+
+  .escalation {
+    background: var(--alert-soft);
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 13px;
+    color: var(--alert);
+    line-height: 1.5;
+    margin-top: 14px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 30px 10px;
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  .disclaimer {
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    text-align: center;
+    padding: 4px 10px 0;
+  }
+  .accessory-btn.selected {
+    background: linear-gradient(135deg, #FF6FA0, #FF9D6C);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 6px 16px var(--glow1);
+  }
+  .contact-chip {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--panel-border);
+    background: rgba(255,255,255,0.5);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .contact-chip.selected {
+    background: linear-gradient(135deg, #FF6FA0, #FF9D6C);
+    color: #fff;
+    border-color: transparent;
+  }
+</style>
+</head>
+<body>
+<div class="app" id="mainApp">
+
+  <header class="top">
+    <div class="wordmark">Derma<span>log</span> ✨</div>
+    <div class="date-chip" id="todayChip"></div>
+  </header>
+
+  <!-- SCAN VIEW -->
+  <section class="view active" id="view-scan">
+    <div class="panel" id="scanCard">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px;">
+        <h2 class="section-title" style="margin:0;">Today's scan</h2>
+        <span class="date-chip" id="quotaChip"></span>
+      </div>
+      <div class="scan-frame" id="scanFrame">
+        <div class="scan-placeholder" id="scanPlaceholder">Center your face in the guide, in even light, then capture — or upload a photo.</div>
+        <div class="guide-oval" id="guideOval" style="display:none;"></div>
+        <video id="video" autoplay playsinline muted style="display:none;"></video>
+        <canvas id="previewCanvas" class="preview" style="display:none;"></canvas>
+      </div>
+      <div class="scan-actions">
+        <button id="btnCamera">Use camera</button>
+        <label class="btn-file" for="fileInput">Upload photo</label>
+        <input type="file" id="fileInput" accept="image/*" capture="user">
+      </div>
+      <div class="scan-actions" id="captureRow" style="display:none;">
+        <button class="primary" id="btnCapture">Capture</button>
+        <button id="btnRetake">Retake</button>
+      </div>
+    </div>
+
+    <div class="panel" id="paywallCard" style="display:none;">
+      <h2 class="section-title">Free scans used for today</h2>
+      <p class="muted">You've used today's 5 free scans. Subscribe for unlimited daily scans, full trend history, and routine guidance.</p>
+      <div class="readout-row" style="margin: 14px 0;">
+        <div class="summary-line" style="margin:0;">₹50 / month — unlimited scans</div>
+      </div>
+      <div class="scan-actions">
+        <button class="rose" id="btnSubscribe">Subscribe — ₹50/month</button>
+      </div>
+      <p class="disclaimer" style="padding-top:10px;">Prototype toggle — no real payment is taken here. In production this connects to a payment gateway.</p>
+    </div>
+
+    <div class="panel" id="resultsPanel" style="display:none;">
+      <h2 class="section-title">Reading</h2>
+      <div class="readout-row">
+        <div class="readout-label"><b>Redness</b><span class="val" id="rednessVal">—</span></div>
+        <div class="bar-track"><div class="bar-fill" id="rednessBar" style="background:var(--alert); width:0%;"></div></div>
+      </div>
+      <div class="readout-row">
+        <div class="readout-label"><b>Dullness</b><span class="val" id="dullnessVal">—</span></div>
+        <div class="bar-track"><div class="bar-fill" id="dullnessBar" style="background:var(--ink-soft); width:0%;"></div></div>
+      </div>
+      <div class="readout-row">
+        <div class="readout-label"><b>Oil / shine</b><span class="val" id="oilVal">—</span></div>
+        <div class="bar-track"><div class="bar-fill" id="oilBar" style="background:var(--rose); width:0%;"></div></div>
+      </div>
+      <p class="summary-line" id="summaryLine"></p>
+      <div class="scan-actions">
+        <button class="rose" id="btnSaveLog">Save to log</button>
+      </div>
+    </div>
+    <p class="disclaimer">Cosmetic readout only, from on-screen color analysis of your photo — not a medical device and not a diagnosis. See a dermatologist for anything persistent or worsening.</p>
+  </section>
+
+  <!-- TRENDS VIEW -->
+  <section class="view" id="view-trends">
+    <div class="panel">
+      <h2 class="section-title">Streak</h2>
+      <div class="streak-row">
+        <span class="streak-num" id="streakNum">0</span>
+        <span class="muted">day log streak</span>
+      </div>
+      <div class="muted" id="scanCountLine"></div>
+    </div>
+
+    <div class="panel" id="trendsPanel">
+      <h2 class="section-title">Last scans</h2>
+      <div id="trendsEmpty" class="empty-state">No scans logged yet. Run today's scan to start your trend line.</div>
+      <div id="trendsContent" style="display:none;">
+        <div class="metric-block">
+          <div class="metric-name">Redness</div>
+          <canvas class="spark" id="sparkRedness"></canvas>
+        </div>
+        <div class="metric-block">
+          <div class="metric-name">Dullness</div>
+          <canvas class="spark" id="sparkDullness"></canvas>
+        </div>
+        <div class="metric-block" style="margin-bottom:0;">
+          <div class="metric-name">Oil / shine</div>
+          <canvas class="spark" id="sparkOil"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="breakoutPanel" style="display:none;">
+      <h2 class="section-title">Breakout risk</h2>
+      <p class="muted" id="breakoutText"></p>
+      <span class="risk-badge" id="riskBadge"></span>
+    </div>
+  </section>
+
+  <!-- ROUTINE VIEW -->
+  <section class="view" id="view-routine">
+    <div class="panel" id="routinePanel">
+      <h2 class="section-title">Today's guidance</h2>
+      <div id="routineEmpty" class="empty-state">Log a scan to get today's routine guidance.</div>
+      <div id="routineContent" style="display:none;">
+        <p class="muted" id="routineIntro"></p>
+        <ul class="rec-list" id="doList"></ul>
+      </div>
+    </div>
+    <div class="panel" id="avoidPanelWrap" style="display:none;">
+      <h2 class="section-title">Hold off on</h2>
+      <ul class="rec-list" id="avoidList"></ul>
+    </div>
+    <div class="escalation" id="escalationBox" style="display:none;"></div>
+  </section>
+
+  <!-- STYLE / ASK FRIENDS VIEW -->
+  <section class="view" id="view-style">
+    <div class="panel">
+      <h2 class="section-title">Ask your friends</h2>
+      <p class="muted">Pick a photo and what you're trying on. Get a link you can send on WhatsApp — friends tap Yes/No, no app or account needed on their end.</p>
+    </div>
+
+    <div class="panel">
+      <h2 class="section-title" style="font-size:15px;">1. Your photo</h2>
+      <div class="scan-frame" id="styleFrame" style="aspect-ratio: 4/3;">
+        <div class="scan-placeholder" id="stylePlaceholder">Upload a photo to ask about</div>
+        <canvas id="styleCanvas" class="preview" style="display:none;"></canvas>
+      </div>
+      <div class="scan-actions">
+        <label class="btn-file" for="styleFileInput">Upload photo</label>
+        <input type="file" id="styleFileInput" accept="image/*" style="display:none;">
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 class="section-title" style="font-size:15px;">2. What are you asking about?</h2>
+      <div class="scan-actions" style="flex-wrap:wrap;">
+        <button class="accessory-btn" data-acc="Earrings">Earrings</button>
+        <button class="accessory-btn" data-acc="Bindi">Bindi</button>
+      </div>
+      <div class="scan-actions" style="flex-wrap:wrap;">
+        <button class="accessory-btn" data-acc="Necklace">Necklace</button>
+        <button class="accessory-btn" data-acc="Nose ring">Nose ring</button>
+      </div>
+      <div class="scan-actions" style="flex-wrap:wrap;">
+        <button class="accessory-btn" data-acc="Hairstyle">Hairstyle</button>
+        <button class="accessory-btn" data-acc="Lipstick shade">Lipstick shade</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 class="section-title" style="font-size:15px;">3. Your number</h2>
+      <p class="muted" style="margin-bottom:10px;">Replies land here. Saved after the first time — no retyping.</p>
+      <input type="tel" id="styleNumber" placeholder="91XXXXXXXXXX" style="width:100%; padding:12px; border-radius:999px; border:1px solid var(--panel-border); background:rgba(255,255,255,0.5); color:var(--ink); font-family:'Inter',sans-serif; font-size:14px;">
+    </div>
+
+    <div class="panel">
+      <h2 class="section-title" style="font-size:15px;">4. Send to</h2>
+      <p class="muted" style="margin-bottom:10px;">Type initials to find a saved friend, or add one once and reuse it every time.</p>
+      <input type="text" id="contactSearch" placeholder="Type initials, e.g. AS" style="width:100%; padding:12px; border-radius:999px; border:1px solid var(--panel-border); background:rgba(255,255,255,0.5); color:var(--ink); font-family:'Inter',sans-serif; font-size:14px; margin-bottom:10px;">
+      <div id="contactSuggestions" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:4px;"></div>
+      <div id="selectedContactChip" class="risk-badge risk-low" style="display:none; margin-top:6px;"></div>
+
+      <details style="margin-top:14px;">
+        <summary style="cursor:pointer; font-size:13px; color:var(--ink-soft); font-weight:600;">+ Save a new friend</summary>
+        <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
+          <input type="text" id="newContactName" placeholder="Name" style="width:100%; padding:11px; border-radius:999px; border:1px solid var(--panel-border); background:rgba(255,255,255,0.5); color:var(--ink); font-family:'Inter',sans-serif; font-size:14px;">
+          <input type="tel" id="newContactNumber" placeholder="Their WhatsApp number, e.g. 91XXXXXXXXXX" style="width:100%; padding:11px; border-radius:999px; border:1px solid var(--panel-border); background:rgba(255,255,255,0.5); color:var(--ink); font-family:'Inter',sans-serif; font-size:14px;">
+          <button id="btnSaveContact">Save friend</button>
+        </div>
+      </details>
+    </div>
+
+    <div class="panel">
+      <div class="scan-actions">
+        <button class="rose" id="btnMakeLink">Create link</button>
+      </div>
+      <div id="linkResult" style="display:none; margin-top:14px;">
+        <p class="muted" style="margin-bottom:8px;">Share this — friends need no app or sign-in to vote:</p>
+        <div class="scan-actions">
+          <button id="btnCopyLink">Copy link</button>
+          <button class="rose" id="btnSendToFriend">Send to friend</button>
+        </div>
+        <div class="scan-actions">
+          <button id="btnShareWA">Or choose from WhatsApp</button>
+        </div>
+      </div>
+      <p class="disclaimer" style="padding-top:10px;">Prototype: votes reply straight to your WhatsApp rather than being tallied in-app — a fully aggregated live poll needs a proper backend, which is a bigger build than this artifact supports.</p>
+    </div>
+  </section>
+
+  <nav class="tabbar">
+    <button class="tab active" data-view="scan">Scan</button>
+    <button class="tab" data-view="trends">Trends</button>
+    <button class="tab" data-view="routine">Routine</button>
+    <button class="tab" data-view="style">Style</button>
+  </nav>
+</div>
+
+<!-- POLL VIEW: shown instead of the app when someone opens a shared ask-friends link -->
+<div class="app" id="pollApp" style="display:none;">
+  <header class="top"><div class="wordmark">Derma<span>log</span> ✨</div></header>
+  <div class="panel">
+    <h2 class="section-title" id="pollQuestion">Does this suit her?</h2>
+    <div class="scan-frame" style="aspect-ratio:4/3;">
+      <img id="pollImage" style="width:100%;height:100%;object-fit:cover;" alt="Photo to vote on">
+    </div>
+    <div class="scan-actions" style="margin-top:14px;">
+      <button class="rose" id="pollYes">Yes, suits her</button>
+    </div>
+    <div class="scan-actions">
+      <button id="pollMaybe">Maybe</button>
+      <button id="pollNo">Not really</button>
+    </div>
+    <p class="disclaimer" style="padding-top:10px;">Tapping opens WhatsApp with your reply ready to send back.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ---------- date / streak chip ----------
+  const todayStr = new Date().toISOString().slice(0,10);
+  document.getElementById('todayChip').textContent = todayStr;
+
+  // ---------- tab switching ----------
+  const tabs = document.querySelectorAll('.tab');
+  const views = { scan: document.getElementById('view-scan'), trends: document.getElementById('view-trends'), routine: document.getElementById('view-routine'), style: document.getElementById('view-style') };
+  tabs.forEach(t => t.addEventListener('click', () => {
+    tabs.forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    Object.values(views).forEach(v => v.classList.remove('active'));
+    views[t.dataset.view].classList.add('active');
+    if (t.dataset.view === 'trends') renderTrends();
+    if (t.dataset.view === 'routine') renderRoutine();
+  }));
+
+  // ---------- storage ----------
+  function loadLog(){
+    try {
+      const raw = localStorage.getItem('dermalog_scans');
+      return raw ? JSON.parse(raw) : [];
+    } catch(e){ return []; }
+  }
+  function saveLog(list){
+    try { localStorage.setItem('dermalog_scans', JSON.stringify(list)); } catch(e){}
+  }
+
+  // ---------- subscription / free-scan quota ----------
+  const FREE_SCANS_PER_DAY = 5;
+  function isSubscribed(){
+    try { return localStorage.getItem('dermalog_subscribed') === '1'; } catch(e){ return false; }
+  }
+  function setSubscribed(v){
+    try { localStorage.setItem('dermalog_subscribed', v ? '1' : '0'); } catch(e){}
+  }
+  function todayScanCount(){
+    const log = loadLog();
+    return log.filter(e => e.date === todayStr).length;
+  }
+  function scansRemaining(){
+    if (isSubscribed()) return Infinity;
+    return Math.max(0, FREE_SCANS_PER_DAY - todayScanCount());
+  }
+  function refreshQuotaUI(){
+    const remaining = scansRemaining();
+    const chip = document.getElementById('quotaChip');
+    const scanCard = document.getElementById('scanCard');
+    const paywallCard = document.getElementById('paywallCard');
+    if (isSubscribed()){
+      chip.textContent = 'Unlimited';
+    } else {
+      chip.textContent = remaining + ' free today';
+    }
+    if (remaining <= 0 && !isSubscribed()){
+      scanCard.style.display = 'none';
+      paywallCard.style.display = 'block';
+    } else {
+      scanCard.style.display = 'block';
+      paywallCard.style.display = 'none';
+    }
+  }
+
+  // ---------- camera / capture ----------
+  const scanFrame = document.getElementById('scanFrame');
+  const scanPlaceholder = document.getElementById('scanPlaceholder');
+  const guideOval = document.getElementById('guideOval');
+  const video = document.getElementById('video');
+  const previewCanvas = document.getElementById('previewCanvas');
+  const btnCamera = document.getElementById('btnCamera');
+  const fileInput = document.getElementById('fileInput');
+  const captureRow = document.getElementById('captureRow');
+  const btnCapture = document.getElementById('btnCapture');
+  const btnRetake = document.getElementById('btnRetake');
+  const scanActionsRow = document.querySelector('.scan-actions');
+
+  let stream = null;
+  let capturedCanvas = null; // holds the final captured frame
+
+  async function startCamera(){
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      video.srcObject = stream;
+      video.style.display = 'block';
+      scanPlaceholder.style.display = 'none';
+      guideOval.style.display = 'block';
+      previewCanvas.style.display = 'none';
+      captureRow.style.display = 'flex';
+      scanActionsRow.style.display = 'none';
+    } catch(err){
+      scanPlaceholder.textContent = "Couldn't access the camera — use Upload photo instead.";
+    }
+  }
+  function stopCamera(){
+    if (stream){ stream.getTracks().forEach(t => t.stop()); stream = null; }
+  }
+
+  btnCamera.addEventListener('click', startCamera);
+
+  btnCapture.addEventListener('click', () => {
+    const c = document.createElement('canvas');
+    c.width = video.videoWidth; c.height = video.videoHeight;
+    c.getContext('2d').drawImage(video, 0, 0);
+    capturedCanvas = c;
+    showPreview(c);
+    stopCamera();
+  });
+
+  btnRetake.addEventListener('click', () => {
+    capturedCanvas = null;
+    document.getElementById('resultsPanel').style.display = 'none';
+    previewCanvas.style.display = 'none';
+    guideOval.style.display = 'none';
+    video.style.display = 'none';
+    scanPlaceholder.style.display = 'block';
+    scanPlaceholder.textContent = "Center your face in the guide, in even light, then capture — or upload a photo.";
+    captureRow.style.display = 'none';
+    scanActionsRow.style.display = 'flex';
+  });
+
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.width; c.height = img.height;
+      c.getContext('2d').drawImage(img, 0, 0);
+      capturedCanvas = c;
+      showPreview(c);
+    };
+    img.onerror = () => { alert('Could not read that photo — try a different file.'); };
+    const reader = new FileReader();
+    reader.onload = (ev) => { img.src = ev.target.result; };
+    reader.onerror = () => { alert('Could not read that photo — try a different file.'); };
+    reader.readAsDataURL(file);
+  });
+
+  function showPreview(canvasSrc){
+    previewCanvas.width = canvasSrc.width;
+    previewCanvas.height = canvasSrc.height;
+    previewCanvas.getContext('2d').drawImage(canvasSrc, 0, 0);
+    previewCanvas.style.display = 'block';
+    video.style.display = 'none';
+    guideOval.style.display = 'none';
+    scanPlaceholder.style.display = 'none';
+    captureRow.style.display = 'none';
+    scanActionsRow.style.display = 'flex';
+    analyzeAndShow(canvasSrc);
+  }
+
+  // ---------- heuristic analysis ----------
+  // Samples the centre region of the frame (where the guide oval sits) and
+  // derives simple, transparent color-based indices. This is a cosmetic
+  // heuristic for a prototype, not a clinical measurement.
+  function analyzeSkin(canvas){
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const rx = Math.floor(w * 0.30), ry = Math.floor(h * 0.22);
+    const rw = Math.floor(w * 0.40), rh = Math.floor(h * 0.45);
+    const data = ctx.getImageData(rx, ry, rw, rh).data;
+
+    let rSum=0,gSum=0,bSum=0, n=0, brightPixels=0, lumSum=0;
+    for (let i=0; i<data.length; i+=4){
+      const r=data[i], g=data[i+1], b=data[i+2];
+      rSum+=r; gSum+=g; bSum+=b;
+      const lum = 0.299*r + 0.587*g + 0.114*b;
+      lumSum += lum;
+      if (lum > 225) brightPixels++;
+      n++;
+    }
+    const rAvg = rSum/n, gAvg = gSum/n, bAvg = bSum/n;
+    const lumAvg = lumSum/n;
+
+    // Redness: how far R sits above the G/B average, scaled to 0-100
+    let redness = ((rAvg - (gAvg+bAvg)/2) / 255) * 260;
+    redness = Math.max(0, Math.min(100, redness));
+
+    // Dullness: inverse of brightness/evenness, scaled to 0-100
+    let dullness = 100 - (lumAvg/255)*100;
+    dullness = Math.max(0, Math.min(100, dullness));
+
+    // Oil/shine: proportion of very bright (specular) pixels in the region
+    let oil = (brightPixels/n) * 100 * 3;
+    oil = Math.max(0, Math.min(100, oil));
+
+    return { redness: Math.round(redness), dullness: Math.round(dullness), oil: Math.round(oil) };
+  }
+
+  function summaryFor(m){
+    const parts = [];
+    if (m.redness > 55) parts.push("some visible redness");
+    if (m.oil > 55) parts.push("noticeable shine/oil");
+    if (m.dullness > 55) parts.push("a duller, uneven tone");
+    if (parts.length === 0) return "Skin reads calm and even today.";
+    return "Today's read: " + parts.join(", ") + ".";
+  }
+
+  function analyzeAndShow(canvas){
+    const m = analyzeSkin(canvas);
+    document.getElementById('resultsPanel').style.display = 'block';
+    document.getElementById('rednessVal').textContent = m.redness;
+    document.getElementById('dullnessVal').textContent = m.dullness;
+    document.getElementById('oilVal').textContent = m.oil;
+    document.getElementById('rednessBar').style.width = m.redness + '%';
+    document.getElementById('dullnessBar').style.width = m.dullness + '%';
+    document.getElementById('oilBar').style.width = m.oil + '%';
+    document.getElementById('summaryLine').textContent = summaryFor(m);
+    window.__lastReading = m;
+  }
+
+  document.getElementById('btnSaveLog').addEventListener('click', () => {
+    if (!window.__lastReading) return;
+    const log = loadLog();
+    log.push({ date: todayStr, ts: Date.now(), ...window.__lastReading });
+    saveLog(log);
+    document.getElementById('btnSaveLog').textContent = 'Saved ✓';
+    document.getElementById('btnSaveLog').disabled = true;
+    refreshQuotaUI();
+  });
+
+  document.getElementById('btnSubscribe').addEventListener('click', () => {
+    setSubscribed(true);
+    refreshQuotaUI();
+  });
+
+  // ---------- trends ----------
+  function computeStreak(log){
+    if (log.length === 0) return 0;
+    const days = [...new Set(log.map(e => e.date))].sort().reverse();
+    let streak = 0;
+    let cursor = new Date(todayStr);
+    for (let i=0; i<days.length; i++){
+      const expected = cursor.toISOString().slice(0,10);
+      if (days[i] === expected){
+        streak++;
+        cursor.setDate(cursor.getDate()-1);
+      } else break;
+    }
+    return streak;
+  }
+
+  function drawSpark(canvas, values, color){
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = 60 * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0,0,rect.width,60);
+    if (values.length === 0) return;
+    const max = 100, min = 0;
+    const stepX = values.length > 1 ? rect.width / (values.length - 1) : 0;
+    ctx.beginPath();
+    values.forEach((v,i) => {
+      const x = i * stepX;
+      const y = 50 - ((v-min)/(max-min))*44;
+      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    values.forEach((v,i) => {
+      const x = i * stepX;
+      const y = 50 - ((v-min)/(max-min))*44;
+      ctx.beginPath();
+      ctx.arc(x,y,2.5,0,Math.PI*2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    });
+  }
+
+  function renderTrends(){
+    const log = loadLog();
+    document.getElementById('streakNum').textContent = computeStreak(log);
+    document.getElementById('scanCountLine').textContent = log.length + (log.length===1 ? ' scan logged' : ' scans logged');
+
+    const empty = document.getElementById('trendsEmpty');
+    const content = document.getElementById('trendsContent');
+    if (log.length === 0){
+      empty.style.display = 'block'; content.style.display = 'none';
+      document.getElementById('breakoutPanel').style.display = 'none';
+      return;
+    }
+    empty.style.display = 'none'; content.style.display = 'block';
+    const recent = log.slice(-14);
+    drawSpark(document.getElementById('sparkRedness'), recent.map(e=>e.redness), getComputedStyle(document.documentElement).getPropertyValue('--alert').trim());
+    drawSpark(document.getElementById('sparkDullness'), recent.map(e=>e.dullness), getComputedStyle(document.documentElement).getPropertyValue('--ink-soft').trim());
+    drawSpark(document.getElementById('sparkOil'), recent.map(e=>e.oil), getComputedStyle(document.documentElement).getPropertyValue('--rose').trim());
+
+    // breakout risk: rising redness + oil trend over last up-to-5 scans
+    const last5 = log.slice(-5);
+    if (last5.length >= 2){
+      const first = last5[0], lastE = last5[last5.length-1];
+      const rednessDelta = lastE.redness - first.redness;
+      const oilDelta = lastE.oil - first.oil;
+      const avgOil = last5.reduce((s,e)=>s+e.oil,0)/last5.length;
+      const avgRed = last5.reduce((s,e)=>s+e.redness,0)/last5.length;
+      let level = 'low', text;
+      if ((rednessDelta > 12 && oilDelta > 8) || avgOil > 70){
+        level = 'high';
+        text = "Redness and oil have both been climbing across your last scans — congestion is building. This is when breakouts are most likely to show up in the next few days.";
+      } else if (rednessDelta > 6 || oilDelta > 6 || avgRed > 55){
+        level = 'med';
+        text = "A mild upward trend in redness or oil over your recent scans. Worth watching, not yet a clear pattern.";
+      } else {
+        level = 'low';
+        text = "No rising trend in redness or oil across your recent scans.";
+      }
+      document.getElementById('breakoutPanel').style.display = 'block';
+      document.getElementById('breakoutText').textContent = text;
+      const badge = document.getElementById('riskBadge');
+      badge.className = 'risk-badge risk-' + level;
+      badge.textContent = level === 'high' ? 'Elevated risk' : level === 'med' ? 'Mild uptick' : 'Low risk';
+    } else {
+      document.getElementById('breakoutPanel').style.display = 'none';
+    }
+  }
+
+  // ---------- routine ----------
+  function renderRoutine(){
+    const log = loadLog();
+    const empty = document.getElementById('routineEmpty');
+    const content = document.getElementById('routineContent');
+    const avoidWrap = document.getElementById('avoidPanelWrap');
+    const escalation = document.getElementById('escalationBox');
+    if (log.length === 0){
+      empty.style.display = 'block'; content.style.display = 'none';
+      avoidWrap.style.display = 'none'; escalation.style.display = 'none';
+      return;
+    }
+    empty.style.display = 'none'; content.style.display = 'block';
+    const latest = log[log.length-1];
+    const doList = document.getElementById('doList');
+    const avoidList = document.getElementById('avoidList');
+    doList.innerHTML = ''; avoidList.innerHTML = '';
+
+    const doItems = [];
+    const avoidItems = [];
+
+    if (latest.redness > 55){
+      doItems.push('Niacinamide or azelaic acid to calm visible redness');
+      doItems.push('A short burst of cooling — a clean, cold compress for a few minutes');
+      avoidItems.push('New actives or exfoliants until redness settles');
+      avoidItems.push('Hot water or steam on the face today');
+    }
+    if (latest.oil > 55){
+      doItems.push('Salicylic acid (BHA) 2% to clear congestion, used every other night to start');
+      doItems.push('An oil-free, non-comedogenic moisturizer — skip skipping moisturizer, it can backfire');
+      avoidItems.push('Heavy or occlusive creams today');
+    }
+    if (latest.dullness > 55){
+      doItems.push('Gentle exfoliation (a mild AHA night) 2–3x this week');
+      doItems.push('Vitamin C in the morning, sunscreen right after');
+    }
+    if (doItems.length === 0){
+      doItems.push('Keep today\'s routine as is — skin is reading calm');
+      doItems.push('Sunscreen in the morning, as always');
+    }
+    doItems.push('Introduce only one new product at a time, and give it ~2 weeks before judging it');
+
+    doItems.forEach(t => {
+      const li = document.createElement('li');
+      li.innerHTML = '<span class="mark">＋</span><span>' + t + '</span>';
+      doList.appendChild(li);
+    });
+
+    if (avoidItems.length){
+      avoidWrap.style.display = 'block';
+      avoidItems.forEach(t => {
+        const li = document.createElement('li'); li.className = 'avoid';
+        li.innerHTML = '<span class="mark">－</span><span>' + t + '</span>';
+        avoidList.appendChild(li);
+      });
+    } else {
+      avoidWrap.style.display = 'none';
+    }
+
+    document.getElementById('routineIntro').textContent = summaryFor(latest) + ' Here\'s what that suggests for today:';
+
+    // escalation: sustained high redness across last 3+ scans, or persistent high everything
+    const last3 = log.slice(-3);
+    const sustainedRedness = last3.length >= 3 && last3.every(e => e.redness > 65);
+    if (sustainedRedness){
+      escalation.style.display = 'block';
+      escalation.textContent = "Redness has stayed high across your last few scans. If this isn't settling with a gentler routine, it's worth having a dermatologist take a look — persistent redness can have causes (like rosacea) that need a different approach than acne care.";
+    } else {
+      escalation.style.display = 'none';
+    }
+  }
+
+  renderTrends();
+  refreshQuotaUI();
+
+  // ---------- own number: persist so it's never retyped ----------
+  const styleNumberInput = document.getElementById('styleNumber');
+  try {
+    const savedMine = localStorage.getItem('dermalog_myNumber');
+    if (savedMine) styleNumberInput.value = savedMine;
+  } catch(e){}
+  styleNumberInput.addEventListener('change', () => {
+    try { localStorage.setItem('dermalog_myNumber', styleNumberInput.value.replace(/\D/g,'')); } catch(e){}
+  });
+
+  // ---------- saved friends: search by initials, save once, reuse ----------
+  function loadContacts(){
+    try {
+      const raw = localStorage.getItem('dermalog_contacts');
+      return raw ? JSON.parse(raw) : [];
+    } catch(e){ return []; }
+  }
+  function saveContacts(list){
+    try { localStorage.setItem('dermalog_contacts', JSON.stringify(list)); } catch(e){}
+  }
+  function initials(name){
+    return name.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase();
+  }
+  let selectedFriend = null;
+
+  function renderContactSuggestions(){
+    const query = document.getElementById('contactSearch').value.trim().toLowerCase();
+    const box = document.getElementById('contactSuggestions');
+    box.innerHTML = '';
+    const contacts = loadContacts();
+    const matches = query
+      ? contacts.filter(c => initials(c.name).toLowerCase().startsWith(query) || c.name.toLowerCase().startsWith(query))
+      : contacts;
+    matches.slice(0, 8).forEach(c => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'contact-chip' + (selectedFriend && selectedFriend.number === c.number ? ' selected' : '');
+      chip.textContent = c.name + ' · ' + initials(c.name);
+      chip.addEventListener('click', () => {
+        selectedFriend = c;
+        document.getElementById('contactSearch').value = '';
+        renderContactSuggestions();
+        const sel = document.getElementById('selectedContactChip');
+        sel.style.display = 'inline-block';
+        sel.textContent = 'Sending to ' + c.name;
+      });
+      box.appendChild(chip);
+    });
+  }
+  document.getElementById('contactSearch').addEventListener('input', renderContactSuggestions);
+  renderContactSuggestions();
+
+  document.getElementById('btnSaveContact').addEventListener('click', () => {
+    const name = document.getElementById('newContactName').value.trim();
+    const num = document.getElementById('newContactNumber').value.replace(/\D/g,'');
+    if (!name || num.length < 10){ alert('Add a name and a valid number with country code.'); return; }
+    const contacts = loadContacts();
+    contacts.push({ name, number: num });
+    saveContacts(contacts);
+    document.getElementById('newContactName').value = '';
+    document.getElementById('newContactNumber').value = '';
+    renderContactSuggestions();
+  });
+  let styleImageDataUrl = null;
+  let selectedAccessory = null;
+
+  document.getElementById('styleFileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const img = new Image();
+    img.onload = () => {
+      // compress: cap at 260px wide, jpeg, to keep the shareable link short
+      const maxW = 260;
+      const scale = Math.min(1, maxW / img.width);
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale);
+      c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      styleImageDataUrl = c.toDataURL('image/jpeg', 0.55);
+
+      const canvas = document.getElementById('styleCanvas');
+      canvas.width = c.width; canvas.height = c.height;
+      canvas.getContext('2d').drawImage(c, 0, 0);
+      canvas.style.display = 'block';
+      document.getElementById('stylePlaceholder').style.display = 'none';
+    };
+    img.onerror = () => { alert('Could not read that photo — try a different file.'); };
+    const reader = new FileReader();
+    reader.onload = (ev) => { img.src = ev.target.result; };
+    reader.onerror = () => { alert('Could not read that photo — try a different file.'); };
+    reader.readAsDataURL(file);
+  });
+
+  document.querySelectorAll('.accessory-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.accessory-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedAccessory = btn.dataset.acc;
+    });
+  });
+
+  function buildAskUrl(){
+    const payload = {
+      a: selectedAccessory,
+      n: document.getElementById('styleNumber').value.replace(/\D/g,''),
+      i: styleImageDataUrl
+    };
+    const encoded = btoa(encodeURIComponent(JSON.stringify(payload)));
+    const base = location.origin + location.pathname;
+    return base + '#ask=' + encoded;
+  }
+
+  function flagField(el){
+    const prevBorder = el.style.border;
+    el.style.border = '2px solid var(--alert)';
+    if (typeof el.focus === 'function') el.focus();
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => { el.style.border = prevBorder; }, 2500);
+  }
+
+  document.getElementById('btnMakeLink').addEventListener('click', () => {
+    if (!styleImageDataUrl){
+      alert('Add a photo in step 1 first.');
+      flagField(document.getElementById('styleFrame'));
+      return;
+    }
+    if (!selectedAccessory){ alert('Pick what you\'re asking about in step 2.'); return; }
+    const num = document.getElementById('styleNumber').value.replace(/\D/g,'');
+    if (!num || num.length < 10){
+      alert('Step 3 needs YOUR OWN number (not your friend\'s) — that\'s where their reply comes back to.');
+      flagField(document.getElementById('styleNumber'));
+      return;
+    }
+    const url = buildAskUrl();
+    window.__lastAskUrl = url;
+    document.getElementById('linkResult').style.display = 'block';
+  });
+
+  document.getElementById('btnCopyLink').addEventListener('click', () => {
+    if (!window.__lastAskUrl) return;
+    navigator.clipboard.writeText(window.__lastAskUrl).then(() => {
+      document.getElementById('btnCopyLink').textContent = 'Copied ✓';
+      setTimeout(() => { document.getElementById('btnCopyLink').textContent = 'Copy link'; }, 1500);
+    }).catch(() => { prompt('Copy this link:', window.__lastAskUrl); });
+  });
+
+  document.getElementById('btnShareWA').addEventListener('click', () => {
+    if (!window.__lastAskUrl) return;
+    const msg = encodeURIComponent('Quick one — does this ' + selectedAccessory.toLowerCase() + ' suit me? ' + window.__lastAskUrl);
+    window.open('https://wa.me/?text=' + msg, '_blank');
+  });
+
+  document.getElementById('btnSendToFriend').addEventListener('click', () => {
+    if (!window.__lastAskUrl){ alert('Create the link first.'); return; }
+    if (!selectedFriend){ alert('Pick a saved friend above, or save one first.'); return; }
+    const msg = encodeURIComponent('Quick one — does this ' + selectedAccessory.toLowerCase() + ' suit me? ' + window.__lastAskUrl);
+    window.open('https://wa.me/' + selectedFriend.number + '?text=' + msg, '_blank');
+  });
+
+  // ---------- poll mode: rendering a shared ask-friends link ----------
+  function tryRenderPoll(){
+    const hash = location.hash;
+    if (!hash.startsWith('#ask=')) return false;
+    let payload;
+    try {
+      payload = JSON.parse(decodeURIComponent(atob(hash.slice(5))));
+    } catch(e){ return false; }
+    if (!payload || !payload.i) return false;
+
+    document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('pollApp').style.display = 'block';
+    document.getElementById('pollQuestion').textContent = 'Does this ' + (payload.a || 'look').toLowerCase() + ' suit her?';
+    document.getElementById('pollImage').src = payload.i;
+
+    function vote(label){
+      const num = payload.n;
+      const msg = encodeURIComponent('Vote on your ' + (payload.a || 'look').toLowerCase() + ': ' + label);
+      const url = num ? ('https://wa.me/' + num + '?text=' + msg) : ('https://wa.me/?text=' + msg);
+      window.open(url, '_blank');
+    }
+    document.getElementById('pollYes').addEventListener('click', () => vote('Yes, suits you! 😍'));
+    document.getElementById('pollMaybe').addEventListener('click', () => vote('Maybe — depends on the outfit'));
+    document.getElementById('pollNo').addEventListener('click', () => vote('Not really, try another one'));
+    return true;
+  }
+
+  tryRenderPoll();
+})();
+</script>
+</body>
+</html>
